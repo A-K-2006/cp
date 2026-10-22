@@ -1,0 +1,100 @@
+<snippet>
+	<content><![CDATA[
+// 6. MATH  (atcoder::pow_mod, inv_mod, crt, floor_sum)
+using mint = modint998244353 ;
+
+void ntt(vector<mint>& a, bool invert) {
+    int n = sz(a);
+    for (int i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
+    }
+    for (int len = 2; len <= n; len <<= 1) {
+        mint w = mint(3).pow((998244353 - 1) / len);
+        if (invert) w = w.inv();
+        for (int i = 0; i < n; i += len) {
+            mint wn = 1;
+            for (int j = 0; j < len / 2; j++) {
+                mint u = a[i + j], v = a[i + j + len / 2] * wn;
+                a[i + j] = u + v;
+                a[i + j + len / 2] = u - v;
+                wn *= w;
+            }
+        }
+    }
+    if (invert) {
+        mint ninv = mint(n).inv();
+        for (auto& x : a) x *= ninv;
+    }
+}
+
+vector<mint> convolution(vector<mint> a, vector<mint> b) {
+    if (a.empty() || b.empty()) return {};
+    int need = sz(a) + sz(b) - 1, n = 1;
+    while (n < need) n <<= 1;
+    a.resize(n); b.resize(n);
+    ntt(a, false); ntt(b, false);
+    for (int i = 0; i < n; i++) a[i] *= b[i];
+    ntt(a, true);
+    a.resize(need);
+    return a;
+}
+
+ll ext_gcd(ll a, ll b, ll& x, ll& y) {
+    if (b == 0) { x = 1; y = 0; return a; }
+    ll x1, y1;
+    ll g = ext_gcd(b, a % b, x1, y1);
+    x = y1; y = x1 - (a / b) * y1;
+    return g;
+}
+ll pow_mod(ll x, ll n, ll m) {
+    if (m == 1) return 0;
+    x %= m; if (x < 0) x += m;
+    ll r = 1;
+    while (n > 0) { if (n & 1) r = (__int128)r * x % m; x = (__int128)x * x % m; n >>= 1; }
+    return r;
+}
+ll inv_mod(ll a, ll m) { ll x, y; ext_gcd(a, m, x, y); return (x % m + m) % m; } // gcd(a,m) must be 1
+
+// Solve x ≡ r[i] (mod m[i]) for all i. Returns {r, m}: x ≡ r (mod m). Returns {0,0} if no solution.
+pair<ll, ll> crt(const vector<ll>& r, const vector<ll>& m) {
+    ll r0 = 0, m0 = 1;
+    for (int i = 0; i < sz(r); i++) {
+        ll r1 = ((r[i] % m[i]) + m[i]) % m[i], m1 = m[i];
+        if (m0 < m1) { swap(r0, r1); swap(m0, m1); }
+        if (m0 % m1 == 0) { if (r0 % m1 != r1) return {0, 0}; continue; }
+        ll x, y;
+        ll g = ext_gcd(m0, m1, x, y);
+        ll u1 = m1 / g;
+        if ((r1 - r0) % g != 0) return {0, 0};
+        ll t = (r1 - r0) / g % u1 * x % u1;
+        r0 += m0 * t; m0 *= u1;
+        if (r0 < 0) r0 += m0;
+    }
+    return {r0, m0};
+}
+
+// sum_{i=0}^{n-1} floor((a*i+b)/m), handles negative a, b
+ll floor_sum(ll n, ll m, ll a, ll b) {
+    ll ans = 0;
+    if (a < 0) { ll a2 = a % m + m; ans -= n * (n - 1) / 2 * ((a2 - a) / m); a = a2; }
+    if (b < 0) { ll b2 = b % m + m; ans -= n * ((b2 - b) / m); b = b2; }
+    while (true) {
+        if (a >= m) { ans += n * (n - 1) / 2 * (a / m); a %= m; }
+        if (b >= m) { ans += n * (b / m); b %= m; }
+        ll y_max = a * n + b;
+        if (y_max < m) break;
+        n = (ll)(y_max / m); b = (ll)(y_max % m);
+        swap(m, a);
+    }
+    return ans;
+}
+
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>algo_math</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

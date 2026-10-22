@@ -1,0 +1,58 @@
+<snippet>
+	<content><![CDATA[
+// 7. MAX FLOW  (atcoder::mf_graph<Cap>) — Dinic's algorithm, O(V^2 E)
+template <typename Cap>
+struct mf_graph {
+    struct edge { int to; Cap cap; int rev; };
+    int n;
+    vector<vector<edge>> g;
+    mf_graph(int n) : n(n), g(n) {}
+
+    int add_edge(int from, int to, Cap cap) {
+        int m = sz(g[from]);
+        g[from].push_back({to, cap, sz(g[to])});
+        g[to].push_back({from, Cap(0), m});
+        return m;
+    }
+    vector<int> level, iter;
+    bool bfs(int s, int t) {
+        level.assign(n, -1);
+        queue<int> q; level[s] = 0; q.push(s);
+        while (!q.empty()) {
+            int v = q.front(); q.pop();
+            for (auto& e : g[v])
+                if (e.cap > 0 && level[e.to] < 0) {
+                    level[e.to] = level[v] + 1;
+                    if (e.to == t) return true;
+                    q.push(e.to);
+                }
+        }
+        return level[t] >= 0;
+    }
+    Cap dfs(int v, int t, Cap f) {
+        if (v == t) return f;
+        for (int& i = iter[v]; i < sz(g[v]); i++) {
+            edge& e = g[v][i];
+            if (e.cap > 0 && level[v] < level[e.to]) {
+                Cap d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) { e.cap -= d; g[e.to][e.rev].cap += d; return d; }
+            }
+        }
+        return 0;
+    }
+    Cap flow(int s, int t) {
+        Cap total = 0, limit = numeric_limits<Cap>::max();
+        while (bfs(s, t)) {
+            iter.assign(n, 0);
+            Cap f;
+            while ((f = dfs(s, t, limit - total)) > 0) total += f;
+        }
+        return total;
+    }
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>algo_max_flow</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

@@ -1,0 +1,30 @@
+<snippet>
+	<content><![CDATA[
+// 2. DSU  (atcoder::dsu)
+struct dsu {
+    vector<int> parent, sz_;
+    int components;
+    dsu(int n) : parent(n), sz_(n, 1), components(n) { iota(all(parent), 0); }
+    int find(int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); }
+    bool merge(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (sz_[a] < sz_[b]) swap(a, b);
+        parent[b] = a; sz_[a] += sz_[b]; components--;
+        return true;
+    }
+    bool same(int a, int b) { return find(a) == find(b); }
+    int size(int x) { return sz_[find(x)]; }
+    vector<vector<int>> groups() {
+        vector<vector<int>> res(sz(parent));
+        for (int i = 0; i < sz(parent); i++) res[find(i)].push_back(i);
+        res.erase(remove_if(all(res), [](auto& v) { return v.empty(); }), res.end());
+        return res;
+    }
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>dsu</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

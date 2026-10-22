@@ -1,0 +1,143 @@
+<snippet>
+	<content><![CDATA[
+// 4. SEGMENT TREE  (atcoder::segtree<S, op, e>)
+template <class S, S (*op)(S, S), S (*e)()>
+struct segtree {
+    int _n, size, log;
+    vector<S> d;
+    segtree() : segtree(0) {}
+    segtree(int n) : segtree(vector<S>(n, e())) {}
+    segtree(const vector<S>& v) : _n(sz(v)) {
+        log = 0; while ((1 << log) < _n) log++;
+        size = 1 << log;
+        d = vector<S>(2 * size, e());
+        for (int i = 0; i < _n; i++) d[size + i] = v[i];
+        for (int i = size - 1; i >= 1; i--) upd(i);
+    }
+    void upd(int k) { d[k] = op(d[2 * k], d[2 * k + 1]); }
+    void set(int p, S x) { p += size; d[p] = x; for (int i = 1; i <= log; i++) upd(p >> i); }
+    S get(int p) { return d[p + size]; }
+    S prod(int l, int r) { // [l, r)
+        S sml = e(), smr = e();
+        l += size; r += size;
+        while (l < r) {
+            if (l & 1) sml = op(sml, d[l++]);
+            if (r & 1) smr = op(d[--r], smr);
+            l >>= 1; r >>= 1;
+        }
+        return op(sml, smr);
+    }
+    S all_prod() { return d[1]; }
+    // first index in [l, n) where f(prod(l, idx+1)) becomes false; requires f(e())==true
+    int max_right(int l, function<bool(S)> f) {
+        if (l == _n) return _n;
+        l += size;
+        S sm = e();
+        do {
+            while (l % 2 == 0) l >>= 1;
+            if (!f(op(sm, d[l]))) {
+                while (l < size) { l = 2 * l; if (f(op(sm, d[l]))) { sm = op(sm, d[l]); l++; } }
+                return l - size;
+            }
+            sm = op(sm, d[l]); l++;
+        } while ((l & (-l)) != l);
+        return _n;
+    }
+    // last index in [0, r] such that f(prod(idx, r)) is true, scanning from r downward
+    int min_left(int r, function<bool(S)> f) {
+        if (r == 0) return 0;
+        r += size;
+        S sm = e();
+        do {
+            r--;
+            while (r > 1 && (r % 2)) r >>= 1;
+            if (!f(op(d[r], sm))) {
+                while (r < size) { r = 2 * r + 1; if (f(op(d[r], sm))) { sm = op(d[r], sm); r--; } }
+                return r + 1 - size;
+            }
+            sm = op(d[r], sm);
+        } while ((r & (-r)) != r);
+        return 0;
+    }
+};
+
+// 5. LAZY SEGMENT TREE  (atcoder::lazy_segtree<S,op,e,F,mapping,composition,id>)
+template <class S, S (*op)(S, S), S (*e)(),
+          class F, S (*mapping)(F, S), F (*composition)(F, F), F (*id)()>
+struct lazy_segtree {
+    int _n, size, log;
+    vector<S> d;
+    vector<F> lz;
+    lazy_segtree() : lazy_segtree(0) {}
+    lazy_segtree(int n) : lazy_segtree(vector<S>(n, e())) {}
+    lazy_segtree(const vector<S>& v) : _n(sz(v)) {
+        log = 0; while ((1 << log) < _n) log++;
+        size = 1 << log;
+        d = vector<S>(2 * size, e());
+        lz = vector<F>(size, id());
+        for (int i = 0; i < _n; i++) d[size + i] = v[i];
+        for (int i = size - 1; i >= 1; i--) upd(i);
+    }
+    void upd(int k) { d[k] = op(d[2 * k], d[2 * k + 1]); }
+    void all_apply(int k, F f) { d[k] = mapping(f, d[k]); if (k < size) lz[k] = composition(f, lz[k]); }
+    void push(int k) { all_apply(2 * k, lz[k]); all_apply(2 * k + 1, lz[k]); lz[k] = id(); }
+
+    void set(int p, S x) {
+        p += size;
+        for (int i = log; i >= 1; i--) push(p >> i);
+        d[p] = x;
+        for (int i = 1; i <= log; i++) upd(p >> i);
+    }
+    S get(int p) {
+        p += size;
+        for (int i = log; i >= 1; i--) push(p >> i);
+        return d[p];
+    }
+    S prod(int l, int r) { // [l, r)
+        if (l == r) return e();
+        l += size; r += size;
+        for (int i = log; i >= 1; i--) {
+            if (((l >> i) << i) != l) push(l >> i);
+            if (((r >> i) << i) != r) push((r - 1) >> i);
+        }
+        S sml = e(), smr = e();
+        while (l < r) {
+            if (l & 1) sml = op(sml, d[l++]);
+            if (r & 1) smr = op(d[--r], smr);
+            l >>= 1; r >>= 1;
+        }
+        return op(sml, smr);
+    }
+    S all_prod() { return d[1]; }
+    void apply(int p, F f) {
+        p += size;
+        for (int i = log; i >= 1; i--) push(p >> i);
+        d[p] = mapping(f, d[p]);
+        for (int i = 1; i <= log; i++) upd(p >> i);
+    }
+    void apply(int l, int r, F f) { // [l, r)
+        if (l == r) return;
+        l += size; r += size;
+        for (int i = log; i >= 1; i--) {
+            if (((l >> i) << i) != l) push(l >> i);
+            if (((r >> i) << i) != r) push((r - 1) >> i);
+        }
+        int l2 = l, r2 = r;
+        while (l < r) {
+            if (l & 1) all_apply(l++, f);
+            if (r & 1) all_apply(--r, f);
+            l >>= 1; r >>= 1;
+        }
+        l = l2; r = r2;
+        for (int i = 1; i <= log; i++) {
+            if (((l >> i) << i) != l) upd(l >> i);
+            if (((r >> i) << i) != r) upd((r - 1) >> i);
+        }
+    }
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>segtree</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

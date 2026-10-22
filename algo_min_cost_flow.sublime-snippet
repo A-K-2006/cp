@@ -1,0 +1,55 @@
+<snippet>
+	<content><![CDATA[
+// 8. MIN COST FLOW  (atcoder::mcf_graph<Cap,Cost>) — SPFA-based, handles
+//    negative edge costs (no negative cycles). Slower than ACL's Dijkstra +
+//    potentials version but much simpler and correct for typical contest sizes.
+template <typename Cap, typename Cost>
+struct mcf_graph {
+    struct edge { int to; Cap cap; Cost cost; int rev; };
+    int n;
+    vector<vector<edge>> g;
+    mcf_graph(int n) : n(n), g(n) {}
+
+    void add_edge(int from, int to, Cap cap, Cost cost) {
+        g[from].push_back({to, cap, cost, sz(g[to])});
+        g[to].push_back({from, Cap(0), -cost, sz(g[from]) - 1});
+    }
+    pair<Cap, Cost> flow(int s, int t) {
+        Cap flow = 0; Cost cost = 0;
+        const Cost COST_INF = numeric_limits<Cost>::max();
+        while (true) {
+            vector<Cost> dist(n, COST_INF);
+            vector<int> prevv(n, -1), preve(n, -1);
+            vector<bool> inq(n, false);
+            dist[s] = 0;
+            queue<int> q; q.push(s); inq[s] = true;
+            while (!q.empty()) {
+                int v = q.front(); q.pop(); inq[v] = false;
+                for (int i = 0; i < sz(g[v]); i++) {
+                    edge& e = g[v][i];
+                    if (e.cap > 0 && dist[v] != COST_INF && dist[v] + e.cost < dist[e.to]) {
+                        dist[e.to] = dist[v] + e.cost;
+                        prevv[e.to] = v; preve[e.to] = i;
+                        if (!inq[e.to]) { q.push(e.to); inq[e.to] = true; }
+                    }
+                }
+            }
+            if (dist[t] == COST_INF) break;
+            Cap d = numeric_limits<Cap>::max();
+            for (int v = t; v != s; v = prevv[v]) d = min(d, g[prevv[v]][preve[v]].cap);
+            for (int v = t; v != s; v = prevv[v]) {
+                g[prevv[v]][preve[v]].cap -= d;
+                g[g[prevv[v]][preve[v]].to][g[prevv[v]][preve[v]].rev].cap += d;
+            }
+            flow += d; cost += d * dist[t];
+        }
+        return {flow, cost};
+    }
+};
+
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>algo_min_cost_flow</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

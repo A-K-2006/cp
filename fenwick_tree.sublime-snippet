@@ -1,0 +1,19 @@
+<snippet>
+	<content><![CDATA[
+// 3. FENWICK TREE  (atcoder::fenwick_tree<T>)
+template <typename T>
+struct fenwick_tree {
+    int n;
+    vector<T> data;
+    fenwick_tree() : fenwick_tree(0) {}
+    fenwick_tree(int n) : n(n), data(n, T(0)) {}
+    void add(int p, T x) { for (p++; p <= n; p += p & (-p)) data[p - 1] += x; }
+    T sum(int r) { T s = T(0); for (; r > 0; r -= r & (-r)) s += data[r - 1]; return s; } // prefix [0, r)
+    T sum(int l, int r) { return sum(r) - sum(l); }                                       // [l, r)
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>fenwick_tree</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

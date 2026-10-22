@@ -1,0 +1,87 @@
+<snippet>
+	<content><![CDATA[
+// 9. SCC + 2-SAT  (atcoder::scc_graph, atcoder::two_sat) — Tarjan's algorithm
+struct scc_graph {
+    int n;
+    vector<vector<int>> g;
+    scc_graph(int n) : n(n), g(n) {}
+    void add_edge(int from, int to) { g[from].push_back(to); }
+
+    vector<int> comp, order_, low;
+    vector<bool> instack;
+    stack<int> stk;
+    int timer_ = 0, comp_count = 0;
+
+    void run(int s) {
+        vector<pair<int,int>> call;
+        low[s] = order_[s] = timer_++;
+        stk.push(s); instack[s] = true;
+        call.push_back({s, 0});
+        while (!call.empty()) {
+            int v = call.back().first;
+            int &i = call.back().second;
+            if (i < sz(g[v])) {
+                int to = g[v][i++];
+                if (order_[to] == -1) {
+                    low[to] = order_[to] = timer_++;
+                    stk.push(to); instack[to] = true;
+                    call.push_back({to, 0});
+                } else if (instack[to]) {
+                    low[v] = min(low[v], order_[to]);
+                }
+            } else {
+                if (low[v] == order_[v]) {
+                    while (true) {
+                        int u = stk.top(); stk.pop(); instack[u] = false;
+                        comp[u] = comp_count;
+                        if (u == v) break;
+                    }
+                    comp_count++;
+                }
+                call.pop_back();
+                if (!call.empty()) {
+                    int p = call.back().first;
+                    low[p] = min(low[p], low[v]);
+                }
+            }
+        }
+    }
+    vector<vector<int>> scc() {
+        comp.assign(n, -1); order_.assign(n, -1); low.assign(n, 0);
+        instack.assign(n, false); timer_ = 0; comp_count = 0;
+        for (int i = 0; i < n; i++) if (order_[i] == -1) run(i);
+        vector<vector<int>> groups(comp_count);
+        for (int i = 0; i < n; i++) groups[comp_count - 1 - comp[i]].push_back(i);
+        return groups;
+    }
+};
+
+struct two_sat {
+    int n;
+    scc_graph g;
+    vector<bool> ans;
+    two_sat(int n) : n(n), g(2 * n), ans(n) {}
+    void add_clause(int x, bool f, int y, bool g_) {
+        // (x == f) OR (y == g_):  !(x==f) -> (y==g_),  !(y==g_) -> (x==f)
+        g.add_edge(2 * x + (f ? 0 : 1), 2 * y + (g_ ? 1 : 0));
+        g.add_edge(2 * y + (g_ ? 0 : 1), 2 * x + (f ? 1 : 0));
+    }
+    bool satisfiable() {
+        auto groups = g.scc();
+        vector<int> comp_id(2 * n);
+        for (int i = 0; i < sz(groups); i++)
+            for (int v : groups[i]) comp_id[v] = i;
+        for (int i = 0; i < n; i++) {
+            if (comp_id[2 * i] == comp_id[2 * i + 1]) return false;
+            ans[i] = comp_id[2 * i + 1] > comp_id[2 * i];
+        }
+        return true;
+    }
+    vector<bool> answer() { return ans; }
+};
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>algo_scc</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<!-- <scope>source.python</scope> -->
+</snippet>

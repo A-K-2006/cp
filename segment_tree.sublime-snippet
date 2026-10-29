@@ -1,6 +1,6 @@
 <snippet>
 	<content><![CDATA[
-// 4. SEGMENT TREE  (atcoder::segtree<S, op, e>)
+// SEGMENT TREE  (atcoder::segtree<S, op, e>)
 template <class S, S (*op)(S, S), S (*e)()>
 struct segtree {
     int _n, size, log;
@@ -61,7 +61,7 @@ struct segtree {
     }
 };
 
-// 5. LAZY SEGMENT TREE  (atcoder::lazy_segtree<S,op,e,F,mapping,composition,id>)
+// LAZY SEGMENT TREE  (atcoder::lazy_segtree<S,op,e,F,mapping,composition,id>)
 template <class S, S (*op)(S, S), S (*e)(),
           class F, S (*mapping)(F, S), F (*composition)(F, F), F (*id)()>
 struct lazy_segtree {
@@ -135,6 +135,65 @@ struct lazy_segtree {
         }
     }
 };
+
+// PERSISTENT SEGMENT TREE
+template <class S, S (*op)(S, S), S (*e)()>
+struct persistent_segtree {
+    struct node { S val; int l, r; };
+    int _n;
+    vector<node> t;
+
+    persistent_segtree() : persistent_segtree(0) {}
+    persistent_segtree(int n, int expected_updates = 0) : _n(n) {
+        int lg = 1; while ((1 << lg) < max(n, 1)) lg++;
+        t.reserve(1 + (size_t)expected_updates * (lg + 2));
+        t.push_back({e(), 0, 0});
+    }
+    int empty_root() const { return 0; }
+    int build(const vector<S>& v) { return _build(0, _n, v); }
+    int set(int root, int p, S x) { return _set(root, 0, _n, p, x); }
+    int apply(int root, int p, function<S(S)> f) { return set(root, p, f(get(root, p))); }
+    S get(int root, int p) { return prod(root, p, p + 1); }
+    S prod(int root, int l, int r) { return _prod(root, 0, _n, l, r); } 
+    S all_prod(int root) { return t[root].val; }
+    int kth(int ru, int rv, int k) {
+        int lo = 0, hi = _n;
+        while (hi - lo > 1) {
+            int mid = (lo + hi) / 2;
+            auto cl = t[t[rv].l].val - t[t[ru].l].val;
+            if (k <= cl) { ru = t[ru].l; rv = t[rv].l; hi = mid; }
+            else         { k -= cl; ru = t[ru].r; rv = t[rv].r; lo = mid; }
+        }
+        return lo;
+    }
+private:
+    int _build(int lo, int hi, const vector<S>& v) {
+        int nw = t.size(); t.push_back({e(), 0, 0});
+        if (hi - lo == 1) { t[nw].val = v[lo]; return nw; }
+        int mid = (lo + hi) / 2;
+        int a = _build(lo, mid, v);
+        int b = _build(mid, hi, v);
+        t[nw].l = a; t[nw].r = b;
+        t[nw].val = op(t[a].val, t[b].val);
+        return nw;
+    }
+    int _set(int cur, int lo, int hi, int p, S x) {
+        int nw = t.size(); t.push_back(t[cur]);
+        if (hi - lo == 1) { t[nw].val = x; return nw; }
+        int mid = (lo + hi) / 2;
+        if (p < mid) { int c = _set(t[cur].l, lo, mid, p, x); t[nw].l = c; }
+        else         { int c = _set(t[cur].r, mid, hi, p, x); t[nw].r = c; }
+        t[nw].val = op(t[t[nw].l].val, t[t[nw].r].val);
+        return nw;
+    }
+    S _prod(int cur, int lo, int hi, int l, int r) {
+        if (cur == 0 || r <= lo || hi <= l) return e();
+        if (l <= lo && hi <= r) return t[cur].val;
+        int mid = (lo + hi) / 2;
+        return op(_prod(t[cur].l, lo, mid, l, r), _prod(t[cur].r, mid, hi, l, r));
+    }
+};
+
 ]]></content>
 	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
 	<tabTrigger>segtree</tabTrigger>
